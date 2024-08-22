@@ -10,7 +10,6 @@ export enum ScooterStatus {
 @Entity()
 export class Scooter {
   @PrimaryGeneratedColumn()
-  @OneToMany(() => Rent, (rent) => rent.scooterId)
   id: number;
 
   @Column({
@@ -19,4 +18,7 @@ export class Scooter {
     default: ScooterStatus.AVAILABLE,
   })
   status: string;
+
+  @OneToMany(() => Rent, (rent) => rent.scooterId)
+  rents: Rent[];
 }

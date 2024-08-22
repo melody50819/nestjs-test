@@ -15,19 +15,13 @@ export class Rent {
   @PrimaryGeneratedColumn("uuid")
   id: number;
 
-  @Column()
-  userId: number;
-
-  @Column()
-  scooterId: number;
-
-  @ManyToOne(() => User, (user) => user.id)
+  @ManyToOne(() => User, (user) => user.rents)
   @JoinColumn({ name: "userId" })
-  user: User;
+  userId: User;
 
-  @ManyToOne(() => Scooter, (scooter) => scooter.id)
+  @ManyToOne(() => Scooter, (scooter) => scooter.rents)
   @JoinColumn({ name: "scooterId" })
-  scooter: Scooter;
+  scooterId: Scooter;
 
   @Column({ type: "timestamp", default: () => "now()" })
   startTime: Date;

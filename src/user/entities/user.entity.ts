@@ -4,7 +4,6 @@ import { Rent } from "src/rent/entities/rent.entity";
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
-  @OneToMany(() => Rent, (rent) => rent.userId)
   id: number;
 
   @Column({ length: 20 })
@@ -12,4 +11,7 @@ export class User {
 
   @Column({ default: true })
   isCertified: boolean;
+
+  @OneToMany(() => Rent, (rent) => rent.userId)
+  rents: Rent[];
 }

@@ -39,11 +39,6 @@ export class RentController {
     return this.rentService.findOne(+id);
   }
 
-  @Patch(":id")
-  update(@Param("id") id: string, @Body() updateRentDto: UpdateRentDto) {
-    return this.rentService.update(+id, updateRentDto);
-  }
-
   @Delete(":id")
   remove(@Param("id") id: string) {
     return this.rentService.remove(+id);
