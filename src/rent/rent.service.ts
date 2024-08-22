@@ -22,13 +22,18 @@ export class RentService {
     private scooterRepository: Repository<Scooter>
   ) {}
 
-  async checkExistRent(user: User): Promise<void> {
+  async checkIsReturn(user: User): Promise<boolean> {
     const existingRent = await this.rentRepository.findOne({
-      where: { userId: user, endTime: null },
+      where: { userId: user },
+      order: { startTime: "DESC" },
     });
-    if (existingRent) {
-      throw new BadRequestException("User already has an active rent");
+
+    if (!existingRent) {
+      // first time rent
+      return true;
     }
+
+    return existingRent.endTime !== null;
   }
 
   async checkUser(user: User): Promise<void> {
@@ -43,12 +48,18 @@ export class RentService {
 
   async checkScooter(scooter: Scooter): Promise<void> {
     if (!scooter) {
-      throw new BadRequestException("User not found");
+      throw new BadRequestException("Scooter not found");
     }
 
     // 檢查車輛是否可用
     if (scooter.status !== ScooterStatus.AVAILABLE) {
       throw new BadRequestException("Scooter is not available");
+    }
+  }
+
+  async checkRent(rent: Rent): Promise<void> {
+    if (!rent) {
+      throw new NotFoundException(`Rent record not found`);
     }
   }
 
@@ -62,8 +73,12 @@ export class RentService {
     });
 
     await this.checkUser(user); // 檢查用戶認證狀態
-    await this.checkExistRent(user); // 檢查用戶是否已經租借了一台車
     await this.checkScooter(scooter); // 檢查車輛是否可用
+
+    // 檢查用戶是否已經歸還車輛
+    if (!(await this.checkIsReturn(user))) {
+      throw new BadRequestException("User already has an active rent");
+    }
 
     // 創建新的租借記錄
     const newRent = new Rent();
@@ -73,24 +88,29 @@ export class RentService {
     // 更新車輛狀態
     scooter.status = ScooterStatus.INUSE;
     await this.scooterRepository.save(scooter);
-
     return this.rentRepository.save(newRent);
   }
 
-  async findAll(): Promise<Rent[]> {
-    return await this.rentRepository.find();
-  }
+  async return(updateRentDto: UpdateRentDto): Promise<void> {
+    const { userId, scooterId } = updateRentDto;
 
-  async findOne(id: number): Promise<Rent> {
-    const rent = await this.rentRepository.findOne({ where: { id } });
-    if (!rent) {
-      throw new NotFoundException(`Rent with ID ${id} not found`);
-    }
-    return rent;
-  }
+    const rent = await this.rentRepository.findOne({
+      where: {
+        userId: { id: userId },
+        scooterId: { id: scooterId },
+        endTime: null,
+      },
+      relations: ["scooterId"],
+      order: { startTime: "DESC" },
+    });
 
-  async remove(id: number): Promise<void> {
-    const rent = await this.findOne(id);
-    await this.rentRepository.remove(rent);
+    await this.checkRent(rent);
+
+    await this.scooterRepository.update(scooterId, {
+      status: ScooterStatus.AVAILABLE,
+    });
+
+    rent.endTime = new Date();
+    this.rentRepository.save(rent);
   }
 }

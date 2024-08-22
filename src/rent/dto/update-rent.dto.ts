@@ -1,4 +1,7 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreateRentDto } from './create-rent.dto';
+import { PartialType } from "@nestjs/swagger";
+import { CreateRentDto } from "./create-rent.dto";
 
-export class UpdateRentDto extends PartialType(CreateRentDto) {}
+export class UpdateRentDto extends PartialType(CreateRentDto) {
+  userId: number;
+  scooterId: number;
+}

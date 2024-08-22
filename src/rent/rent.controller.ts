@@ -29,18 +29,8 @@ export class RentController {
     return this.rentService.create(createRentDto);
   }
 
-  @Get()
-  findAll() {
-    return this.rentService.findAll();
-  }
-
-  @Get(":id")
-  findOne(@Param("id") id: string) {
-    return this.rentService.findOne(+id);
-  }
-
-  @Delete(":id")
-  remove(@Param("id") id: string) {
-    return this.rentService.remove(+id);
+  @Patch("return")
+  return(@Body() updateRentDto: UpdateRentDto) {
+    return this.rentService.return(updateRentDto);
   }
 }
