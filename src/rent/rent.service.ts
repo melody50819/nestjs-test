@@ -59,6 +59,7 @@ export class RentService {
 
   async checkRent(rent: Rent): Promise<void> {
     if (!rent) {
+      console.log("Rent not found, throwing NotFoundException");
       throw new NotFoundException(`Rent record not found`);
     }
   }
@@ -103,7 +104,7 @@ export class RentService {
       relations: ["scooterId"],
       order: { startTime: "DESC" },
     });
-
+    console.log("Rent found:", rent);
     await this.checkRent(rent);
 
     await this.scooterRepository.update(scooterId, {
@@ -111,6 +112,6 @@ export class RentService {
     });
 
     rent.endTime = new Date();
-    this.rentRepository.save(rent);
+    await this.rentRepository.save(rent);
   }
 }

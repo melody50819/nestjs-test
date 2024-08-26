@@ -1,11 +1,8 @@
 import {
   Controller,
-  Get,
   Post,
   Body,
   Patch,
-  Param,
-  Delete,
   BadRequestException,
 } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
@@ -19,7 +16,7 @@ export class RentController {
   constructor(private readonly rentService: RentService) {}
 
   @Post()
-  create(@Body() createRentDto: CreateRentDto) {
+  async create(@Body() createRentDto: CreateRentDto) {
     if (!createRentDto.userId) {
       throw new BadRequestException("userId is required");
     }
@@ -30,7 +27,7 @@ export class RentController {
   }
 
   @Patch("return")
-  return(@Body() updateRentDto: UpdateRentDto) {
-    return this.rentService.return(updateRentDto);
+  async return(@Body() updateRentDto: UpdateRentDto) {
+    await this.rentService.return(updateRentDto);
   }
 }
