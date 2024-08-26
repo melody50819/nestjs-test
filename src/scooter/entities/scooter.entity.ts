@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from "typeorm";
-import { Rent } from "src/rent/entities/rent.entity";
+import { Rent } from "../../rent/entities/rent.entity";
 
 export enum ScooterStatus {
   AVAILABLE = "available",

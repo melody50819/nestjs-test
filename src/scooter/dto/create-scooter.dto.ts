@@ -1,4 +1,1 @@
-export class CreateScooterDto {
-  id: number;
-  status: string;
-}
+export class CreateScooterDto {}
