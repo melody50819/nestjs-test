@@ -4,11 +4,9 @@ import {
   PrimaryGeneratedColumn,
   ManyToOne,
   JoinColumn,
-  CreateDateColumn,
-  UpdateDateColumn,
 } from "typeorm";
-import { User } from "src/user/entities/user.entity";
-import { Scooter } from "src/scooter/entities/scooter.entity";
+import { User } from "../../user/entities/user.entity";
+import { Scooter } from "../../scooter/entities/scooter.entity";
 
 @Entity()
 export class Rent {
