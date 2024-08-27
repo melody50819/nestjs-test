@@ -1,19 +1,21 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { RentController } from "./rent.controller";
 import { RentService } from "./rent.service";
-import { getRepositoryToken } from "@nestjs/typeorm";
-import { Rent } from "./entities/rent.entity";
-import { User } from "../user/entities/user.entity";
-import { Scooter } from "../scooter/entities/scooter.entity";
-
-const mockRepository = () => ({
-  find: jest.fn(),
-  create: jest.fn(),
-});
+import { DataSource } from "typeorm";
 
 describe("RentController", () => {
   let controller: RentController;
   let service: RentService;
+
+  const mockDataSource = {
+    transaction: jest.fn((callback) =>
+      callback({
+        findOne: jest.fn(),
+        save: jest.fn(),
+        update: jest.fn(),
+      })
+    ),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -21,16 +23,8 @@ describe("RentController", () => {
       providers: [
         RentService,
         {
-          provide: getRepositoryToken(Rent),
-          useFactory: mockRepository,
-        },
-        {
-          provide: getRepositoryToken(User),
-          useFactory: mockRepository,
-        },
-        {
-          provide: getRepositoryToken(Scooter),
-          useFactory: mockRepository,
+          provide: DataSource,
+          useValue: mockDataSource,
         },
       ],
     }).compile();

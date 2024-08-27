@@ -3,8 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { DataSource, EntityManager } from "typeorm";
 import { Rent } from "./entities/rent.entity";
 import { User } from "../user/entities/user.entity";
 import { Scooter, ScooterStatus } from "../scooter/entities/scooter.entity";
@@ -13,18 +12,11 @@ import { UpdateRentDto } from "./dto/update-rent.dto";
 
 @Injectable()
 export class RentService {
-  constructor(
-    @InjectRepository(Rent)
-    private rentRepository: Repository<Rent>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
-    @InjectRepository(Scooter)
-    private scooterRepository: Repository<Scooter>
-  ) {}
+  constructor(private dataSource: DataSource) {}
 
-  async checkIsReturn(user: User): Promise<boolean> {
-    const existingRent = await this.rentRepository.findOne({
-      where: { userId: user },
+  async checkIsReturn(user: User, manager: EntityManager): Promise<boolean> {
+    const existingRent = await manager.findOne(Rent, {
+      where: { userId: user, endTime: null },
       order: { startTime: "DESC" },
     });
 
@@ -65,53 +57,56 @@ export class RentService {
   }
 
   async create(createRentDto: CreateRentDto): Promise<Rent> {
-    const { userId, scooterId } = createRentDto;
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
+    return this.dataSource.transaction(async (manager) => {
+      const { userId, scooterId } = createRentDto;
+
+      const user = await manager.findOne(User, { where: { id: userId } });
+      const scooter = await manager.findOne(Scooter, {
+        where: { id: scooterId },
+      });
+
+      await this.checkUser(user); // 檢查用戶認證狀態
+      await this.checkScooter(scooter); // 檢查車輛是否可用
+
+      // 檢查用戶是否已經歸還車輛
+      if (!(await this.checkIsReturn(user, manager))) {
+        throw new BadRequestException("User already has an active rent");
+      }
+
+      // 創建新的租借記錄
+      const newRent = new Rent();
+      newRent.userId = user;
+      newRent.scooterId = scooter;
+
+      // 更新車輛狀態
+      scooter.status = ScooterStatus.INUSE;
+      await manager.save(scooter);
+      return await manager.save(newRent);
     });
-    const scooter = await this.scooterRepository.findOne({
-      where: { id: scooterId },
-    });
-
-    await this.checkUser(user); // 檢查用戶認證狀態
-    await this.checkScooter(scooter); // 檢查車輛是否可用
-
-    // 檢查用戶是否已經歸還車輛
-    if (!(await this.checkIsReturn(user))) {
-      throw new BadRequestException("User already has an active rent");
-    }
-
-    // 創建新的租借記錄
-    const newRent = new Rent();
-    newRent.userId = user;
-    newRent.scooterId = scooter;
-
-    // 更新車輛狀態
-    scooter.status = ScooterStatus.INUSE;
-    await this.scooterRepository.save(scooter);
-    return this.rentRepository.save(newRent);
   }
 
   async return(updateRentDto: UpdateRentDto): Promise<void> {
-    const { userId, scooterId } = updateRentDto;
+    await this.dataSource.transaction(async (manager) => {
+      const { userId, scooterId } = updateRentDto;
 
-    const rent = await this.rentRepository.findOne({
-      where: {
-        userId: { id: userId },
-        scooterId: { id: scooterId },
-        endTime: null,
-      },
-      relations: ["scooterId"],
-      order: { startTime: "DESC" },
+      const rent = await manager.findOne(Rent, {
+        where: {
+          userId: { id: userId },
+          scooterId: { id: scooterId },
+          endTime: null,
+        },
+        relations: ["scooterId"],
+        order: { startTime: "DESC" },
+      });
+
+      await this.checkRent(rent);
+
+      await manager.update(Scooter, scooterId, {
+        status: ScooterStatus.AVAILABLE,
+      });
+
+      rent.endTime = new Date();
+      await manager.save(rent);
     });
-    console.log("Rent found:", rent);
-    await this.checkRent(rent);
-
-    await this.scooterRepository.update(scooterId, {
-      status: ScooterStatus.AVAILABLE,
-    });
-
-    rent.endTime = new Date();
-    await this.rentRepository.save(rent);
   }
 }
